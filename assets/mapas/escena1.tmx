@@ -1,37 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="50" height="32" tilewidth="32" tileheight="32" infinite="0" nextlayerid="12" nextobjectid="32">
  <tileset firstgid="1" name="houses" tilewidth="32" tileheight="32" tilecount="1024" columns="32">
-  <image source="../../../../Downloads/Houses_Pack/houses.png" width="1024" height="1024"/>
+  <image source="houses.png" width="1024" height="1024"/>
  </tileset>
  <tileset firstgid="1025" name="textures_02_08_25 (1)" tilewidth="32" tileheight="32" tilecount="156" columns="12">
-  <image source="../../../../Downloads/textures_02_08_25 (1).png" width="384" height="416"/>
+  <image source="textures_02_08_25 (1).png" width="384" height="416"/>
  </tileset>
  <tileset firstgid="1181" name="Textures-16 (1)" tilewidth="32" tileheight="32" tilecount="256" columns="16">
-  <image source="../../../../Downloads/Textures-16 (1).png" width="512" height="512"/>
+  <image source="Textures-16 (1).png" width="512" height="512"/>
  </tileset>
  <tileset firstgid="1437" name="global" tilewidth="32" tileheight="32" tilecount="1" columns="1">
-  <image source="../../../../Downloads/nature free/nature free/global.png" width="48" height="32"/>
+  <image source="global.png" width="48" height="32"/>
  </tileset>
  <tileset firstgid="1438" name="[32x32] Dungeon Bricks Shadow" tilewidth="32" tileheight="32" tilecount="56" columns="8">
-  <image source="../../../../Downloads/[32x32] Dungeon Bricks Shadow.png" width="256" height="224"/>
+  <image source="[32x32] Dungeon Bricks Shadow.png" width="256" height="224"/>
  </tileset>
  <tileset firstgid="1494" name="Lamp Post 2 TALL" tilewidth="32" tileheight="32" tilecount="16" columns="2">
-  <image source="../../../Lamp Post 2 TALL.png" width="70" height="272"/>
+  <image source="Lamp Post 2 TALL.png" width="70" height="272"/>
  </tileset>
  <tileset firstgid="1510" name="Lantern 7 - Bronze and Yellow" tilewidth="32" tileheight="32" tilecount="54" columns="6">
-  <image source="../../../Lantern 7 - Bronze and Yellow.png" width="210" height="294"/>
+  <image source="Lantern 7 - Bronze and Yellow.png" width="210" height="294"/>
  </tileset>
  <tileset firstgid="1564" name="Lamp Post 2 SHORT" tilewidth="32" tileheight="32" tilecount="5" columns="1">
-  <image source="../../../Lamp Post 2 SHORT.png" width="52" height="176"/>
- </tileset>
- <tileset firstgid="1569" name="Lamp Post 2 SHORT" tilewidth="32" tileheight="32" tilecount="5" columns="1">
-  <image source="../../../Lamp Post 2 SHORT.png" width="52" height="176"/>
+  <image source="Lamp Post 2 SHORT.png" width="52" height="176"/>
  </tileset>
  <tileset firstgid="1574" name="Ground_rocks" tilewidth="32" tileheight="32" tilecount="270" columns="15">
-  <image source="../../../../Downloads/Free-Undead-Tileset-Top-Down-Pixel-Art/PNG/Ground_rocks.png" width="496" height="592"/>
+  <image source="Ground_rocks.png" width="496" height="592"/>
  </tileset>
  <tileset firstgid="1844" name="Basic Tiles" tilewidth="32" tileheight="32" tilecount="96" columns="12">
-  <image source="../../../../Downloads/Grass And Path Assets/Grass And Path Assets/Basic Tiles.png" width="384" height="264"/>
+  <image source="Basic Tiles.png" width="384" height="264"/>
  </tileset>
  <layer id="3" name="capa_suelo" width="50" height="32">
   <data encoding="csv">
