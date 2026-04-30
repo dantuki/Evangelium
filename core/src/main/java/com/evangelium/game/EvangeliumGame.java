@@ -5,8 +5,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -33,7 +35,6 @@ public class EvangeliumGame extends ApplicationAdapter {
     private FitViewport viewport;
     private OrthographicCamera camara;
 
-    // --- MAPA Y COLISIONES ---
     private TiledMap mapa;
     private OrthogonalTiledMapRenderer mapaRenderer;
     private Array<Rectangle> muros;
@@ -50,20 +51,21 @@ public class EvangeliumGame extends ApplicationAdapter {
     private float timerTexto = 0;
     private int indiceCaracter = 0;
 
-    // --- TRANSICIÓN ---
     private float alphaNegro = 1; 
     private boolean fundiendoACalle = false;
 
-    // --- EL PADRE (NUEVO ESTILO COHERENTE) ---
-    private Texture spriteSheetPadre;
-    private Animation<TextureRegion> padreCaminar;
-    private float stateTimePadre;
+    // --- EL PADRE (CONFIGURACIÓN REALISTA) ---
+    private Texture padreTexture;
+    private TextureRegion padreRegion;
     private float padreX = 150; 
-    private float padreY = 95; // Ajustado para que pise el suelo
-    private float velocidad = 120f; // Un poco más lento para mejor sensación
+    private float padreY = 95; 
+    private float velocidad = 120f; 
     private boolean mirandoIzquierda = false;
+    
+    // Medidas para evitar el estiramiento
+    private float anchoProporcional;
+    private float altoDeseado = 95f; // Ajusta esto para cambiar el tamaño general
 
-    // --- CLIMA Y AMBIENTE ---
     private Music sonidoLluvia;
     private Sound sonidoTrueno;
     private float timerNiebla = 0;
@@ -75,21 +77,20 @@ public class EvangeliumGame extends ApplicationAdapter {
         shapeRenderer = new ShapeRenderer();
         camara = new OrthographicCamera();
         viewport = new FitViewport(800, 600, camara);
-        camara.zoom = 0.7f; // Un zoom que permite ver el mapa y al personaje
+        camara.zoom = 0.7f; 
 
         layout = new GlyphLayout();
         font = new BitmapFont(); 
         font.getData().setScale(1.1f);
 
         muros = new Array<>();
-        // El rectángulo de colisión debe ser más pequeño, acorde al nuevo tamaño
-        rectPadre = new Rectangle(padreX, padreY, 20, 10);
+        // Rectángulo de colisión (más pequeño que el sprite para realismo)
+        rectPadre = new Rectangle(padreX, padreY, 25, 15);
 
         cargarAssets();
     }
 
     private void cargarAssets() {
-        System.out.println("--- CARGANDO MUNDO COHERENTE ---");
         try {
             // Intro
             monstruoAnim = new Animation<>(0.15f, 
@@ -102,27 +103,32 @@ public class EvangeliumGame extends ApplicationAdapter {
             ambienteIntro.setLooping(true);
             ambienteIntro.play();
 
-            // Sonidos de Clima (asegúrate de tener lluvia.mp3 y trueno.wav)
             try {
                 sonidoLluvia = Gdx.audio.newMusic(Gdx.files.internal("lluvia.mp3"));
                 sonidoLluvia.setLooping(true);
-                sonidoLluvia.setVolume(0.4f);
                 sonidoTrueno = Gdx.audio.newSound(Gdx.files.internal("trueno.wav"));
-            } catch (Exception e) { System.out.println("No se encontraron sonidos de clima."); }
+            } catch (Exception e) {}
 
-            // Padre (NUEVO SPRITESHEET COHERENTE de 8 frames, 32x64 cada uno)
-            spriteSheetPadre = new Texture("padre/walk.png");
-            // Dividimos por 8 frames horizontales
-            int anchoFrame = spriteSheetPadre.getWidth() / 8;
-            // Tomamos el alto total de la imagen para el frame
-            int altoFrame = spriteSheetPadre.getHeight();
-            
-            // Hacemos el split con las medidas exactas
-            TextureRegion[][] tmp = TextureRegion.split(spriteSheetPadre, anchoFrame, altoFrame);
-            // Creamos la animación con los frames correctos
-            padreCaminar = new Animation<>(0.12f, tmp[0]); 
+            // --- CARGA Y CÁLCULO DE PROPORCIÓN ---
+            if (Gdx.files.internal("padre/IDLE1.png").exists()) {
+                padreTexture = getTransparentTexture("padre/IDLE1.png");
+                padreRegion = new TextureRegion(padreTexture);
+                
+                // Calculamos el ancho basándonos en la imagen real para que no se alargue
+                float aspect = (float) padreRegion.getRegionWidth() / padreRegion.getRegionHeight();
+                anchoProporcional = altoDeseado * aspect;
+                
+            } else {
+                System.out.println("ERROR: No se encontró IDLE1.png");
+                // Fallback: Textura roja si no existe el archivo
+                Pixmap p = new Pixmap(64, 64, Pixmap.Format.RGBA8888);
+                p.setColor(Color.RED); p.fill();
+                padreTexture = new Texture(p);
+                padreRegion = new TextureRegion(padreTexture);
+                anchoProporcional = altoDeseado;
+                p.dispose();
+            }
 
-            // Mapa
             mapa = new TmxMapLoader().load("mapas/escena1.tmx");
             mapaRenderer = new OrthogonalTiledMapRenderer(mapa);
 
@@ -134,7 +140,7 @@ public class EvangeliumGame extends ApplicationAdapter {
                 }
             }
         } catch (Exception e) {
-            System.out.println("[ERROR] Error al cargar assets, revisa los archivos: " + e.getMessage());
+            System.out.println("Error cargando assets: " + e.getMessage());
         }
     }
 
@@ -151,17 +157,13 @@ public class EvangeliumGame extends ApplicationAdapter {
             actualizarCalle(delta);
             dibujarCalle();
         }
-        
         dibujarFundido();
     }
 
     private void actualizarIntro(float delta) {
         stateTimeMonstruo += delta;
-        if (!fundiendoACalle && alphaNegro > 0) {
-            alphaNegro -= delta * 0.5f;
-            if (alphaNegro < 0) alphaNegro = 0;
-        }
-
+        if (!fundiendoACalle && alphaNegro > 0) alphaNegro -= delta * 0.5f;
+        
         timerTexto += delta;
         if (timerTexto > 0.06f && indiceCaracter < textoCompleto.length()) {
             textoAMostrar += textoCompleto.charAt(indiceCaracter);
@@ -172,7 +174,7 @@ public class EvangeliumGame extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) fundiendoACalle = true;
 
         if (fundiendoACalle) {
-            alphaNegro += delta * 1.2f;
+            alphaNegro += delta * 1.5f;
             if (alphaNegro >= 1) {
                 alphaNegro = 1;
                 if (ambienteIntro != null) ambienteIntro.stop();
@@ -195,18 +197,13 @@ public class EvangeliumGame extends ApplicationAdapter {
     }
 
     private void actualizarCalle(float delta) {
-        if (alphaNegro > 0) {
-            alphaNegro -= delta * 0.8f;
-            if (alphaNegro < 0) alphaNegro = 0;
-        }
+        if (alphaNegro > 0) alphaNegro -= delta * 1.0f;
+        if (alphaNegro < 0) alphaNegro = 0;
 
         timerNiebla += delta;
-        
-        // Lógica de truenos aleatorios
         proximoTrueno -= delta;
         if (proximoTrueno <= 0) {
             if (sonidoTrueno != null) sonidoTrueno.play();
-            // Truenos cada 8-18 segundos
             proximoTrueno = 8 + (float)Math.random() * 10;
         }
 
@@ -214,8 +211,8 @@ public class EvangeliumGame extends ApplicationAdapter {
         if (Gdx.input.isKeyPressed(Input.Keys.A)) { padreX -= velocidad * delta; mirandoIzquierda = true; }
         if (Gdx.input.isKeyPressed(Input.Keys.D)) { padreX += velocidad * delta; mirandoIzquierda = false; }
 
-        // Actualizamos posición de colisión (ajustada al nuevo tamaño)
-        rectPadre.setPosition(padreX - 10, padreY);
+        // Actualizamos rectángulo de colisión centrado en los pies
+        rectPadre.setPosition(padreX - (rectPadre.width/2), padreY);
         for (Rectangle muro : muros) {
             if (rectPadre.overlaps(muro)) {
                 padreX = viejaX;
@@ -223,15 +220,11 @@ public class EvangeliumGame extends ApplicationAdapter {
             }
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.D)) stateTimePadre += delta;
-        else stateTimePadre = 0;
-
         camara.position.set(padreX, padreY + 150, 0); 
         camara.update();
     }
 
     private void dibujarCalle() {
-        Gdx.gl.glClearColor(0.01f, 0.01f, 0.02f, 1);
         if (mapaRenderer != null) {
             mapaRenderer.setView(camara);
             mapaRenderer.render(); 
@@ -239,27 +232,23 @@ public class EvangeliumGame extends ApplicationAdapter {
 
         batch.setProjectionMatrix(camara.combined);
         batch.begin();
-        if (padreCaminar != null) {
-            TextureRegion frame = padreCaminar.getKeyFrame(stateTimePadre, true);
+        
+        if (padreRegion != null) {
+            // Calculamos X según la dirección para que no "salte" al girar
+            float drawX = mirandoIzquierda ? padreX + (anchoProporcional / 2) : padreX - (anchoProporcional / 2);
+            float drawWidth = mirandoIzquierda ? -anchoProporcional : anchoProporcional;
             
-            // --- AJUSTE DE TAMAÑO COHERENTE (Escala 2x del original 32x64) ---
-            float anchoFinal = 64; 
-            float altoFinal = 128;
-            
-            // Calculamos drawX para que gire sobre su eje
-            float drawX = mirandoIzquierda ? padreX + (anchoFinal/2) : padreX - (anchoFinal/2);
-            float drawWidth = mirandoIzquierda ? -anchoFinal : anchoFinal;
-            
-            batch.draw(frame, drawX, padreY, drawWidth, altoFinal);
+            batch.draw(padreRegion, drawX, padreY, drawWidth, altoDeseado);
         }
+        
         batch.end();
 
-        // Efecto de Niebla sutil
+        // Niebla
         Gdx.gl.glEnable(GL20.GL_BLEND);
         shapeRenderer.setProjectionMatrix(camara.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        float oscNiebla = (float)Math.sin(timerNiebla * 0.3f) * 0.03f;
-        shapeRenderer.setColor(0.5f, 0.5f, 0.6f, 0.07f + oscNiebla);
+        float osc = (float)Math.sin(timerNiebla * 0.3f) * 0.03f;
+        shapeRenderer.setColor(0.5f, 0.5f, 0.6f, 0.07f + osc);
         shapeRenderer.rect(padreX - 400, padreY - 50, 800, 350);
         shapeRenderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
@@ -268,22 +257,45 @@ public class EvangeliumGame extends ApplicationAdapter {
     private void dibujarFundido() {
         if (alphaNegro > 0) {
             Gdx.gl.glEnable(GL20.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA); 
             shapeRenderer.setProjectionMatrix(viewport.getCamera().combined);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             shapeRenderer.setColor(0, 0, 0, alphaNegro);
-            shapeRenderer.rect(0, 0, 800, 600);
+            shapeRenderer.rect(0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
             shapeRenderer.end();
             Gdx.gl.glDisable(GL20.GL_BLEND);
         }
     }
 
     @Override public void resize(int w, int h) { viewport.update(w, h); }
+    
     @Override public void dispose() {
         batch.dispose();
         shapeRenderer.dispose();
         if (mapa != null) mapa.dispose();
-        if (spriteSheetPadre != null) spriteSheetPadre.dispose();
-        if (sonidoLluvia != null) sonidoLluvia.dispose();
+        if (padreTexture != null) padreTexture.dispose();
+    }
+
+    private Texture getTransparentTexture(String path) {
+        try {
+            Pixmap pixmap = new Pixmap(Gdx.files.internal(path));
+            Pixmap trans = new Pixmap(pixmap.getWidth(), pixmap.getHeight(), Pixmap.Format.RGBA8888);
+            float tol = 0.15f; 
+            for (int y = 0; y < pixmap.getHeight(); y++) {
+                for (int x = 0; x < pixmap.getWidth(); x++) {
+                    int color = pixmap.getPixel(x, y);
+                    Color c = new Color(color);
+                    if (c.r > (1f - tol) && c.g < tol && c.b > (1f - tol)) { 
+                        trans.drawPixel(x, y, 0x00000000); 
+                    } else {
+                        trans.drawPixel(x, y, color); 
+                    }
+                }
+            }
+            Texture texture = new Texture(trans);
+            pixmap.dispose(); trans.dispose();
+            return texture;
+        } catch (Exception e) {
+            return new Texture(Gdx.files.internal(path));
+        }
     }
 }
